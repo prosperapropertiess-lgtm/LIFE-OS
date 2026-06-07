@@ -1,6 +1,7 @@
 import { getDashboard } from "../lib/data.js";
 import { greeting, prettyDate, shortDate, todayYMD } from "../lib/time.js";
 import { completeTask } from "./actions.js";
+import DailyHabits from "./DailyHabits.js";
 import FoodLogger from "./FoodLogger.js";
 import QuickAdd from "./QuickAdd.js";
 import QuickForm from "./QuickForm.js";
@@ -28,6 +29,12 @@ export default async function Dashboard() {
       </div>
 
       <QuickAdd />
+
+      <DailyHabits
+        todaySlept={d.todaySlept}
+        todayWeight={d.todayWeight}
+        weightDelta={d.weight.delta}
+      />
 
       {/* Pre-work checklist */}
       <div className="card checklist">
@@ -89,23 +96,6 @@ export default async function Dashboard() {
         <p className="macro-sub">Carbs {d.nutrition.carbs} g · Fat {d.nutrition.fat} g</p>
       </div>
 
-      {/* Weight */}
-      <div className="stat" style={{ marginBottom: "12px" }}>
-        <p className="label">Weight</p>
-        <p className="value">
-          {d.weight.latest ? d.weight.latest.weight_kg : "—"}
-          <span className="of"> kg</span>
-          {d.weight.delta != null ? (
-            <span className={"trend " + (d.weight.delta <= 0 ? "down" : "up")}>
-              {(d.weight.delta <= 0 ? "▼ " : "▲ ") + Math.abs(d.weight.delta) + " kg / 7d"}
-            </span>
-          ) : null}
-        </p>
-        <p className="sub sub-muted">
-          {d.weight.latest ? "last logged " + shortDate(d.weight.latest.date) : "log your weight today"}
-        </p>
-      </div>
-
       {/* Tasks due */}
       <div className="card">
         <h2>Due now</h2>
@@ -159,18 +149,6 @@ export default async function Dashboard() {
       />
 
       <QuickForm
-        kind="sleep"
-        title="Log last night's sleep"
-        cta="Save sleep"
-        today={today}
-        fields={[
-          { name: "hours", label: "Hours", type: "number", half: true, placeholder: "7.5" },
-          { name: "quality", label: "Quality", type: "select", options: ["Poor", "OK", "Good"], half: true, default: "Good" },
-          { name: "date", label: "Date (morning you woke up)", type: "date", default: today },
-        ]}
-      />
-
-      <QuickForm
         kind="focus"
         title="Log property focus hours"
         cta="Save hours"
@@ -195,17 +173,6 @@ export default async function Dashboard() {
       />
 
       <FoodLogger />
-
-      <QuickForm
-        kind="weight"
-        title="Log weight"
-        cta="Save weight"
-        today={today}
-        fields={[
-          { name: "weight_kg", label: "Weight (kg)", type: "number", half: true, placeholder: "82.5" },
-          { name: "date", label: "Date", type: "date", half: true, default: today },
-        ]}
-      />
 
       {/* Recent training progress */}
       <p className="section-title">Recent training</p>
