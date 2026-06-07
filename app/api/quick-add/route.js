@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabase } from "../../../lib/supabase.js";
 import { classifyIntent } from "../../../lib/intent.js";
+import { claudeClassify } from "../../../lib/claude-intent.js";
 import { parseFood } from "../../../lib/nutrition.js";
 import { addTodoistTask } from "../../../lib/todoist.js";
 import { todayYMD, addDays, shortDate } from "../../../lib/time.js";
@@ -23,20 +24,41 @@ export async function POST(request) {
 
   const sb = getSupabase();
   const today = todayYMD();
-  const intent = classifyIntent(text);
 
+  // Try Claude first, fall back to rule-based classifier if key is missing or call fails.
+  let intent = await claudeClassify(text);
+  if (!intent) {
+    intent = classifyIntent(text);
+  }
+  console.log(`[quick-add] "${text}" → ${JSON.stringify(intent)}`);
+
+  // ── Food ──────────────────────────────────────────────────────────────────
   if (intent.intent === "food") {
-    // Food returns a PREVIEW (no save) so the user can review/edit before logging.
+    const foodQuery = intent.food || text;
     let macros = { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
     let matched = 0;
+    let parseError = null;
+
     try {
-      const p = await parseFood(intent.food);
+      const p = await parseFood(foodQuery);
       macros = { calories: p.calories, protein_g: p.protein_g, carbs_g: p.carbs_g, fat_g: p.fat_g };
       matched = p.matched || 0;
-    } catch (e) {}
-    return NextResponse.json({ ok: true, intent: "food", food: intent.food, matched, ...macros });
+    } catch (e) {
+      parseError = e.message || "Could not look up nutrition info.";
+      console.error("[quick-add] parseFood error:", e.message);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      intent: "food",
+      food: foodQuery,
+      matched,
+      parse_error: parseError,
+      ...macros,
+    });
   }
 
+  // ── Training ──────────────────────────────────────────────────────────────
   if (intent.intent === "training") {
     const { data, error } = await sb
       .from("training_log")
@@ -50,10 +72,10 @@ export async function POST(request) {
     });
   }
 
-  // task / reminder
+  // ── Task / Reminder ───────────────────────────────────────────────────────
   const { data, error } = await sb
     .from("tasks")
-    .insert({ task: intent.task, type: "Reminder", due: intent.due, status: "To Do" })
+    .insert({ task: intent.task, type: "Reminder", due: intent.due || null, status: "To Do" })
     .select("id")
     .single();
   if (error) return NextResponse.json({ error: "db" }, { status: 500 });

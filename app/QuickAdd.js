@@ -26,7 +26,7 @@ export default function QuickAdd() {
       const d = await r.json();
       if (!r.ok || !d.ok) throw new Error();
       if (d.intent === "food") {
-        setReview({ food: d.food, matched: d.matched, calories: d.calories, protein_g: d.protein_g, carbs_g: d.carbs_g, fat_g: d.fat_g });
+        setReview({ food: d.food, matched: d.matched, parse_error: d.parse_error || null, calories: d.calories, protein_g: d.protein_g, carbs_g: d.carbs_g, fat_g: d.fat_g });
         setText("");
       } else {
         setText("");
@@ -114,7 +114,13 @@ export default function QuickAdd() {
         <div className="quickadd-review review">
           <p className="review-head">
             {review.food}
-            {review.matched > 0 ? <span className="review-badge">{review.matched} item{review.matched > 1 ? "s" : ""} found</span> : null}
+            {review.parse_error ? (
+              <span className="review-badge err">Couldn&apos;t look up — enter numbers manually</span>
+            ) : review.matched > 0 ? (
+              <span className="review-badge">{review.matched} item{review.matched > 1 ? "s" : ""} found</span>
+            ) : (
+              <span className="review-badge warn">No match — check the numbers</span>
+            )}
           </p>
           <div className="macro-edit">
             <label>Calories<input type="text" inputMode="decimal" value={review.calories} onChange={(e) => upd("calories", e.target.value)} /></label>
