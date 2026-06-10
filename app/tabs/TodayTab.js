@@ -457,8 +457,30 @@ function MorningBrief() {
 
 export default function TodayTab({ d, today }) {
   const [foodOpen, setFoodOpen] = useState(false);
-  const calPct = pct(d.nutrition?.calories || 0, d.targets?.calories || 2500);
-  const proPct = pct(d.nutrition?.protein || 0, d.targets?.protein || 200);
+  const [foodEntries, setFoodEntries] = useState(d.nutrition?.entries || []);
+
+  async function deleteFood(id) {
+    setFoodEntries((prev) => prev.filter((e) => e.id !== id));
+    try {
+      await fetch("/api/delete-entry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "food", id }),
+      });
+    } catch {}
+  }
+
+  // Recompute nutrition totals from local entries (reflects deletes immediately)
+  const liveNutrition = foodEntries.reduce(
+    (a, r) => ({
+      calories: a.calories + Number(r.calories || 0),
+      protein: a.protein + Number(r.protein_g || 0),
+    }),
+    { calories: 0, protein: 0 }
+  );
+
+  const calPct = pct(Math.round(liveNutrition.calories), d.targets?.calories || 2500);
+  const proPct = pct(Math.round(liveNutrition.protein), d.targets?.protein || 200);
 
   const sleepPoints = d.recentSleep
     ? d.recentSleep.slice(0, 7).reverse().map((s) => s.hours)
@@ -492,14 +514,14 @@ export default function TodayTab({ d, today }) {
         <div className="sc green" style={{ cursor: "pointer" }} onClick={() => setFoodOpen((o) => !o)}>
           <div className="sc-label">Calories left</div>
           <div className="sc-num">
-            {Math.max(0, (d.targets?.calories || 2500) - (d.nutrition?.calories || 0))}
+            {Math.max(0, (d.targets?.calories || 2500) - Math.round(liveNutrition.calories))}
             <span className="sc-denom">cal</span>
           </div>
           <div className="bar green">
             <span style={{ "--target": calPct + "%" }} />
           </div>
           <p className={"sc-sub" + (calPct >= 100 ? " hit" : "")}>
-            {calPct >= 100 ? "Goal hit ✓" : `${d.nutrition?.calories || 0} eaten`}
+            {calPct >= 100 ? "Goal hit ✓" : `${Math.round(liveNutrition.calories)} eaten`}
           </p>
         </div>
 
@@ -507,14 +529,14 @@ export default function TodayTab({ d, today }) {
         <div className="sc violet">
           <div className="sc-label">Protein left</div>
           <div className="sc-num">
-            {Math.max(0, (d.targets?.protein || 200) - (d.nutrition?.protein || 0))}
+            {Math.max(0, (d.targets?.protein || 200) - Math.round(liveNutrition.protein))}
             <span className="sc-denom">g</span>
           </div>
           <div className="bar">
             <span style={{ "--target": proPct + "%" }} />
           </div>
           <p className={"sc-sub" + (proPct >= 100 ? " hit" : "")}>
-            {proPct >= 100 ? "Goal hit ✓" : `${d.nutrition?.protein || 0}g eaten`}
+            {proPct >= 100 ? "Goal hit ✓" : `${Math.round(liveNutrition.protein)}g eaten`}
           </p>
         </div>
 
@@ -556,14 +578,20 @@ export default function TodayTab({ d, today }) {
             <span className="flp-title">Today&apos;s food</span>
             <button type="button" className="flp-close" onClick={() => setFoodOpen(false)}>×</button>
           </div>
-          {d.nutrition?.entries?.length > 0 ? (
+          {foodEntries.length > 0 ? (
             <div className="flp-list">
-              {d.nutrition.entries.map((e, i) => (
+              {foodEntries.map((e, i) => (
                 <div key={e.id || i} className="flp-row">
                   <span className="flp-name">{e.raw_text || e.food_name || "Entry"}</span>
                   <span className="flp-macros">
                     {Math.round(e.calories || 0)} cal · {Math.round(e.protein_g || 0)}g pro
                   </span>
+                  <button
+                    type="button"
+                    className="flp-delete"
+                    onClick={() => deleteFood(e.id)}
+                    aria-label="Delete entry"
+                  >×</button>
                 </div>
               ))}
             </div>
