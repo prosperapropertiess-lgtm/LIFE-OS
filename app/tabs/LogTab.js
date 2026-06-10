@@ -1,19 +1,149 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import QuickForm from "../QuickForm.js";
 import FoodLogger from "../FoodLogger.js";
 
-// Inline hero input
+// ── Bottom sheet modal ───────────────────────────────────────
+
+function Modal({ tile, today, onClose }) {
+  // Lock scroll while open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <>
+      <div className="modal-backdrop" onClick={onClose} />
+      <div className="modal-sheet">
+        <div className="modal-drag" />
+        <div className="modal-head">
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 26 }}>{tile.emoji}</span>
+            <span className="modal-title">{tile.name}</span>
+          </div>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <div className="modal-body">
+          {tile.form(today, onClose)}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Tile definitions ─────────────────────────────────────────
+
+const TILES = [
+  {
+    id: "training",
+    emoji: "🥋",
+    name: "Training",
+    form: (today, onClose) => (
+      <QuickForm
+        kind="training"
+        cta="Save session"
+        today={today}
+        onSuccess={onClose}
+        fields={[
+          { name: "type", label: "Type", type: "select", options: ["Jiu Jitsu", "Gym"], half: true, default: "Jiu Jitsu" },
+          { name: "date", label: "Date", type: "date", half: true, default: today },
+          { name: "duration_min", label: "Minutes", type: "number", half: true, placeholder: "60" },
+          { name: "energy", label: "Energy", type: "select", options: ["", "Low", "Medium", "High"], half: true, default: "" },
+          { name: "moves_lifts", label: "Moves / weights", type: "text", placeholder: "Armbar from guard, bench 185x5" },
+          { name: "notes", label: "Notes", type: "text", placeholder: "optional" },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "sleep",
+    emoji: "😴",
+    name: "Sleep",
+    form: (today, onClose) => (
+      <QuickForm
+        kind="sleep"
+        cta="Save sleep"
+        today={today}
+        onSuccess={onClose}
+        fields={[
+          { name: "hours", label: "Hours", type: "number", half: true, placeholder: "7.5" },
+          { name: "quality", label: "Quality", type: "select", options: ["Poor", "OK", "Good"], half: true, default: "Good" },
+          { name: "date", label: "Date (morning you woke up)", type: "date", default: today },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "food",
+    emoji: "🍽️",
+    name: "Food",
+    form: (today, onClose) => <FoodLogger onSuccess={onClose} />,
+  },
+  {
+    id: "weight",
+    emoji: "⚖️",
+    name: "Weight",
+    form: (today, onClose) => (
+      <QuickForm
+        kind="weight"
+        cta="Save weight"
+        today={today}
+        onSuccess={onClose}
+        fields={[
+          { name: "weight_kg", label: "Weight (kg)", type: "number", half: true, placeholder: "82.5" },
+          { name: "date", label: "Date", type: "date", half: true, default: today },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "property",
+    emoji: "🏠",
+    name: "Property",
+    form: (today, onClose) => (
+      <QuickForm
+        kind="focus"
+        cta="Save hours"
+        today={today}
+        onSuccess={onClose}
+        fields={[
+          { name: "hours", label: "Hours", type: "number", half: true, placeholder: "2" },
+          { name: "date", label: "Date", type: "date", half: true, default: today },
+          { name: "notes", label: "What you worked on", type: "text", placeholder: "Marketplace ads, owner statements" },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "task",
+    emoji: "✅",
+    name: "Task",
+    form: (today, onClose) => (
+      <QuickForm
+        kind="task"
+        cta="Add task"
+        today={today}
+        onSuccess={onClose}
+        fields={[
+          { name: "task", label: "Task", type: "text", placeholder: "Call the plumber" },
+          { name: "type", label: "Type", type: "select", options: ["To-do", "Reminder", "Property", "Project"], half: true, default: "To-do" },
+          { name: "due", label: "Due", type: "date", half: true, default: "" },
+        ]}
+      />
+    ),
+  },
+];
+
+// ── Hero input (unchanged) ───────────────────────────────────
+
 function HeroInput() {
-  const router = useRouter();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [review, setReview] = useState(null);
   const [done, setDone] = useState(null);
   const [saving, setSaving] = useState(false);
-  const textareaRef = useRef(null);
 
   async function submit() {
     const t = text.trim();
@@ -33,7 +163,6 @@ function HeroInput() {
       } else {
         setText("");
         setDone({ verb: d.verb, label: d.label, kind: d.kind, id: d.id });
-        router.refresh();
         setTimeout(() => setDone((c) => (c && c.id === d.id ? null : c)), 8000);
       }
     } catch {
@@ -60,7 +189,6 @@ function HeroInput() {
       const pro = Math.round(Number(review.protein_g) || 0);
       setReview(null);
       setDone({ verb: "Logged", label: `${review.food} · ${cal} cal · ${pro}g protein`, kind: "food", id: d.id });
-      router.refresh();
       setTimeout(() => setDone((c) => (c && c.id === d.id ? null : c)), 8000);
     } catch {
       setDone({ error: true });
@@ -74,7 +202,6 @@ function HeroInput() {
     setDone(null);
     try {
       await fetch("/api/delete-entry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, id }) });
-      router.refresh();
     } catch {}
   }
 
@@ -83,7 +210,6 @@ function HeroInput() {
       <div className="log-hero-card">
         <span className="log-hero-label">Quick Log</span>
         <textarea
-          ref={textareaRef}
           className="log-hero-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -113,9 +239,7 @@ function HeroInput() {
         <div className="quickadd-review review" style={{ marginTop: 10 }}>
           <p className="review-head">
             {review.food}
-            {review.parse_error ? (
-              <span className="review-badge err">Couldn&apos;t look up — enter manually</span>
-            ) : review.matched > 0 ? (
+            {review.matched > 0 ? (
               <span className="review-badge">{review.matched} item{review.matched > 1 ? "s" : ""} found</span>
             ) : (
               <span className="review-badge warn">No match — check numbers</span>
@@ -149,113 +273,10 @@ function HeroInput() {
   );
 }
 
-const TILES = [
-  {
-    id: "training",
-    emoji: "🥋",
-    name: "Training",
-    form: (today) => (
-      <QuickForm
-        kind="training"
-        title="Log a session"
-        cta="Save session"
-        today={today}
-        fields={[
-          { name: "type", label: "Type", type: "select", options: ["Jiu Jitsu", "Gym"], half: true, default: "Jiu Jitsu" },
-          { name: "date", label: "Date", type: "date", half: true, default: today },
-          { name: "duration_min", label: "Minutes", type: "number", half: true, placeholder: "60" },
-          { name: "energy", label: "Energy", type: "select", options: ["", "Low", "Medium", "High"], half: true, default: "" },
-          { name: "moves_lifts", label: "Moves / weights", type: "text", placeholder: "Armbar from guard, bench 185x5" },
-          { name: "notes", label: "Notes", type: "text", placeholder: "optional" },
-        ]}
-      />
-    ),
-  },
-  {
-    id: "sleep",
-    emoji: "😴",
-    name: "Sleep",
-    form: (today) => (
-      <QuickForm
-        kind="sleep"
-        title="Log last night's sleep"
-        cta="Save sleep"
-        today={today}
-        fields={[
-          { name: "hours", label: "Hours", type: "number", half: true, placeholder: "7.5" },
-          { name: "quality", label: "Quality", type: "select", options: ["Poor", "OK", "Good"], half: true, default: "Good" },
-          { name: "date", label: "Date (morning you woke up)", type: "date", default: today },
-        ]}
-      />
-    ),
-  },
-  {
-    id: "food",
-    emoji: "🍽️",
-    name: "Food",
-    form: () => <FoodLogger />,
-  },
-  {
-    id: "weight",
-    emoji: "⚖️",
-    name: "Weight",
-    form: (today) => (
-      <QuickForm
-        kind="weight"
-        title="Log weight"
-        cta="Save weight"
-        today={today}
-        fields={[
-          { name: "weight_kg", label: "Weight (kg)", type: "number", half: true, placeholder: "82.5" },
-          { name: "date", label: "Date", type: "date", half: true, default: today },
-        ]}
-      />
-    ),
-  },
-  {
-    id: "property",
-    emoji: "🏠",
-    name: "Property",
-    form: (today) => (
-      <QuickForm
-        kind="focus"
-        title="Log property focus hours"
-        cta="Save hours"
-        today={today}
-        fields={[
-          { name: "hours", label: "Hours", type: "number", half: true, placeholder: "2" },
-          { name: "date", label: "Date", type: "date", half: true, default: today },
-          { name: "notes", label: "What you worked on", type: "text", placeholder: "Marketplace ads, owner statements" },
-        ]}
-      />
-    ),
-  },
-  {
-    id: "task",
-    emoji: "✅",
-    name: "Task",
-    form: (today) => (
-      <QuickForm
-        kind="task"
-        title="Add a task or reminder"
-        cta="Add task"
-        today={today}
-        fields={[
-          { name: "task", label: "Task", type: "text", placeholder: "Call the plumber" },
-          { name: "type", label: "Type", type: "select", options: ["To-do", "Reminder", "Property", "Project"], half: true, default: "To-do" },
-          { name: "due", label: "Due", type: "date", half: true, default: "" },
-        ]}
-      />
-    ),
-  },
-];
+// ── Main tab ─────────────────────────────────────────────────
 
 export default function LogTab({ today }) {
   const [active, setActive] = useState(null);
-
-  function toggle(id) {
-    setActive((prev) => (prev === id ? null : id));
-  }
 
   const activeTile = TILES.find((t) => t.id === active);
 
@@ -263,7 +284,7 @@ export default function LogTab({ today }) {
     <div>
       <div className="log-hero" style={{ paddingBottom: 4 }}>
         <div style={{ paddingTop: 16, marginBottom: 20 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 4 }}>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--hint)", marginBottom: 4 }}>
             Log
           </p>
           <p style={{ fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1.1, color: "var(--text)" }}>
@@ -280,35 +301,29 @@ export default function LogTab({ today }) {
           {TILES.map((tile) => (
             <button
               key={tile.id}
-              className={`log-tile${active === tile.id ? " active" : ""}`}
-              onClick={() => toggle(tile.id)}
+              className="log-tile"
+              onClick={() => setActive(tile.id)}
               type="button"
+              aria-label={tile.name}
             >
-              <div className="log-tile-emoji">{tile.emoji}</div>
+              <span className="log-tile-emoji">{tile.emoji}</span>
               <span className="log-tile-name">{tile.name}</span>
             </button>
           ))}
         </div>
 
-        {activeTile && (
-          <div className="log-tile-panel" key={activeTile.id}>
-            <div className="log-tile-panel-header">
-              <span className="log-tile-panel-title">{activeTile.emoji} {activeTile.name}</span>
-              <button
-                type="button"
-                className="log-tile-panel-close"
-                onClick={() => setActive(null)}
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-            {activeTile.form(today)}
-          </div>
-        )}
-
         <div style={{ height: 12 }} />
       </div>
+
+      {/* Bottom sheet modal */}
+      {activeTile && (
+        <Modal
+          key={activeTile.id}
+          tile={activeTile}
+          today={today}
+          onClose={() => setActive(null)}
+        />
+      )}
     </div>
   );
 }
