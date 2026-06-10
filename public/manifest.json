@@ -5,8 +5,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f7f3ee",
-  "theme_color": "#0d9488",
+  "background_color": "#f9f9f9",
+  "theme_color": "#f9f9f9",
   "orientation": "portrait-primary",
   "categories": ["health", "lifestyle", "productivity"],
   "icons": [

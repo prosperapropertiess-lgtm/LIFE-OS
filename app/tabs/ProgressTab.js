@@ -41,8 +41,8 @@ function WeightChart({ recent }) {
       <svg viewBox="0 0 100 44" preserveAspectRatio="none" style={{ width: "100%", height: "84%" }}>
         <defs>
           <linearGradient id="wGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            <stop offset="0%" stopColor="#000000" stopOpacity="0.10" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={fillPath} fill="url(#wGrad)" />
@@ -52,7 +52,7 @@ function WeightChart({ recent }) {
           const range = max - min || 1;
           const y = 44 * 0.88 - ((v - min) / range) * (44 * 0.76);
           return (
-            <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r={i === vals.length - 1 ? "2.8" : "1.6"} fill="#0d9488" opacity={i === vals.length - 1 ? 1 : 0.4} />
+            <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r={i === vals.length - 1 ? "2.8" : "1.6"} fill="#000000" opacity={i === vals.length - 1 ? 0.9 : 0.25} />
           );
         })}
       </svg>
@@ -332,7 +332,7 @@ export default function ProgressTab({ d }) {
             {totalMins ? `${Math.floor(totalMins / 60)}h${totalMins % 60 ? ` ${totalMins % 60}m` : ""}` : "—"}
           </div>
           <div className="prog-donut-wrap">
-            <Donut segments={[{ pct: minPct, color: "#ffffff" }]} />
+            <Donut segments={[{ pct: minPct, color: "#000000" }]} />
             <div className="prog-donut-legend">
               <span style={{ color: "var(--hint)", fontSize: 10 }}>of 5h goal</span>
             </div>
@@ -360,7 +360,7 @@ export default function ProgressTab({ d }) {
             <span className="prog-unit">h</span>
           </div>
           <div className="prog-donut-wrap">
-            <Donut segments={[{ pct: Math.min(100, Math.round(((d.focusHours || 0) / 10) * 100)), color: "#ffffff" }]} />
+            <Donut segments={[{ pct: Math.min(100, Math.round(((d.focusHours || 0) / 10) * 100)), color: "#000000" }]} />
             <div className="prog-donut-legend">
               <span style={{ color: "var(--hint)", fontSize: 10 }}>of 10h goal</span>
             </div>

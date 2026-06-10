@@ -1,4 +1,4 @@
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Hanken_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -7,10 +7,10 @@ const inter = Inter({
   display: "swap",
 });
 
-const jakarta = Plus_Jakarta_Sans({
+const hanken = Hanken_Grotesk({
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
-  variable: "--font-jakarta",
+  variable: "--font-hanken",
   display: "swap",
 });
 
@@ -29,7 +29,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0d9488",
+  themeColor: "#f9f9f9",
 };
 
 export default function RootLayout({ children }) {
@@ -42,7 +42,7 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Life OS" />
       </head>
-      <body className={`${inter.variable} ${jakarta.variable} ${inter.className}`}>
+      <body className={`${inter.variable} ${hanken.variable} ${inter.className}`}>
         {children}
         <script
           dangerouslySetInnerHTML={{
