@@ -1,5 +1,5 @@
 // Bump this version any time you want to flush stale caches
-const CACHE = "life-os-v4";
+const CACHE = "life-os-v5";
 
 // Only cache static assets — never the HTML page itself
 const STATIC_EXTS = /\.(js|css|png|jpg|jpeg|svg|ico|woff2?|ttf)(\?.*)?$/;
@@ -28,9 +28,23 @@ self.addEventListener("fetch", (e) => {
   // Never intercept API calls or Next.js internal routes
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/data/")) return;
 
-  // HTML navigation requests — always go to network (so loading.js shows fresh)
+  // HTML navigation requests — stale-while-revalidate.
+  // Serve the cached shell instantly so the loader shows immediately on every open.
+  // Always fetch fresh in the background and update the cache.
   if (request.mode === "navigate") {
-    e.respondWith(fetch(request));
+    e.respondWith(
+      caches.open(CACHE).then(async (cache) => {
+        const cached = await cache.match("/");
+        const fetchPromise = fetch(request)
+          .then((res) => {
+            if (res.ok) cache.put("/", res.clone());
+            return res;
+          })
+          .catch(() => cached); // offline: serve stale
+        // If we have a cached shell, return it immediately; update in background.
+        return cached || fetchPromise;
+      })
+    );
     return;
   }
 

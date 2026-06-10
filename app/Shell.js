@@ -144,21 +144,39 @@ function PushPrompt() {
   );
 }
 
-export default function Shell({ d, today }) {
+export default function Shell() {
   const [tab, setTab] = useState(0);
   const [visited, setVisited] = useState(new Set([0]));
+  const [d, setD] = useState(null);
+  const [today, setToday] = useState("");
 
-  // Hide the pure-HTML loader injected by layout.js.
-  // Minimum 1800ms so the animation is actually visible before the app appears.
+  // Fetch dashboard data client-side so the HTML shell is static and
+  // can be cached/served by the service worker instantly on every open.
   useEffect(() => {
+    setToday(new Date().toLocaleDateString("en-CA"));
+    fetch("/api/dashboard")
+      .then((r) => r.json())
+      .then((data) => setD(data))
+      .catch(() => setD({})); // show empty shell on error rather than hang
+  }, []);
+
+  // Hide the loader once data has arrived (or on error).
+  // At least 1200ms so the animation is visible, but we always wait for data.
+  useEffect(() => {
+    if (!d) return;
     const el = document.getElementById("__loader");
     if (!el) return;
+    const wait = Math.max(0, 1200 - performance.now());
     const t = setTimeout(() => {
       el.classList.add("out");
       setTimeout(() => el.remove(), 400);
-    }, 1800);
+    }, wait);
     return () => clearTimeout(t);
-  }, []);
+  }, [d]);
+
+  // While data is loading, render nothing — #__loader covers the screen.
+  // Once data arrives we render the full app behind the loader, then fade it out.
+  if (!d) return null;
 
   function goTab(i) {
     setTab(i);
