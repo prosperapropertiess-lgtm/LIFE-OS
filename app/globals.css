@@ -1145,19 +1145,20 @@ button.primary:disabled { opacity: 0.4; cursor: default; transform: none; }
 
 /* ─── DAY BRIEFING CARD ──────────────────────────────────── */
 
-/* Pill grid — 2 columns, 3 rows */
+/* Circle grid — 3 columns, 2 rows */
 .brief-pill-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
   margin: 0 0 14px;
 }
 .brief-pill {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: var(--card-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 7px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  aspect-ratio: 1;
+  gap: 2px;
   transition: background 0.2s, border-color 0.2s;
 }
 .brief-pill.hit {
@@ -1165,13 +1166,13 @@ button.primary:disabled { opacity: 0.4; cursor: default; transform: none; }
   border-color: var(--accent);
 }
 .brief-pill-label {
-  font-size: 12px; font-weight: 600; color: var(--muted);
-  letter-spacing: -0.01em;
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.01em; text-align: center; line-height: 1.2;
 }
-.brief-pill.hit .brief-pill-label { color: rgba(255,255,255,0.7); }
+.brief-pill.hit .brief-pill-label { color: rgba(255,255,255,0.65); }
 .brief-pill-val {
-  font-size: 13px; font-weight: 700; color: var(--text);
-  letter-spacing: -0.02em;
+  font-size: 14px; font-weight: 800; color: var(--text);
+  letter-spacing: -0.03em; line-height: 1;
 }
 .brief-pill.hit .brief-pill-val { color: #fff; }
 
