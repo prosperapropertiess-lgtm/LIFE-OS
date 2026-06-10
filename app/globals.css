@@ -389,6 +389,7 @@ html, body {
   gap: 10px; margin-bottom: 12px;
 }
 .stats-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
+.sc-full { grid-column: 1 / -1; }
 .stats-grid.three-col .sc { padding: 13px 11px 12px; }
 .stats-grid.three-col .sc-num { font-size: 28px; }
 .stats-grid.three-col .sc-denom { font-size: 12px; }
@@ -1175,6 +1176,13 @@ button.primary:disabled { opacity: 0.4; cursor: default; transform: none; }
   font-size: 9px; font-weight: 600; color: var(--muted);
   letter-spacing: 0.01em; text-align: center; line-height: 1.2;
   text-transform: uppercase;
+}
+@keyframes arcDraw {
+  from { stroke-dashoffset: 164; }
+  to   { stroke-dashoffset: var(--arc-offset); }
+}
+.brief-arc {
+  animation: arcDraw 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
 }
 
 /* ─── SWIPE TO LOG ───────────────────────────────────────── */

@@ -318,16 +318,19 @@ function BriefPill({ label, done, goal, single }) {
       <svg viewBox="0 0 64 64" className="brief-pill-svg" aria-hidden="true">
         {/* track */}
         <circle cx="32" cy="32" r={R} fill="none" stroke="var(--border)" strokeWidth="3.5" />
-        {/* progress arc */}
+        {/* progress arc — animates from 0 to target on load */}
         {pct > 0 && (
           <circle
             cx="32" cy="32" r={R}
             fill="none"
             stroke="#000000"
             strokeWidth="3.5"
-            strokeDasharray={`${arc} ${circ}`}
+            strokeDasharray={circ}
+            strokeDashoffset={circ - arc}
             strokeLinecap="round"
             transform="rotate(-90 32 32)"
+            className="brief-arc"
+            style={{ "--arc-offset": circ - arc }}
           />
         )}
       </svg>
@@ -454,8 +457,6 @@ function MorningBrief() {
 
 export default function TodayTab({ d, today }) {
   const [foodOpen, setFoodOpen] = useState(false);
-  const totalSessions = (d.jjCount || 0) + (d.gymCount || 0);
-  const totalGoal = (d.goals?.jj || 5) + (d.goals?.gym || 3);
   const calPct = pct(d.nutrition?.calories || 0, d.targets?.calories || 2500);
   const proPct = pct(d.nutrition?.protein || 0, d.targets?.protein || 200);
 
@@ -517,38 +518,33 @@ export default function TodayTab({ d, today }) {
           </p>
         </div>
 
-        {/* Training */}
-        <div className="sc amber">
-          <div className="sc-label">Training</div>
-          <div className="sc-num">
-            {totalSessions}
-            <span className="sc-denom">/{totalGoal}</span>
+        {/* Sleep — full width */}
+        <div className="sc blue sc-full">
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div>
+              <div className="sc-label">Sleep last night</div>
+              <div className="sc-num">
+                {d.lastNight ? d.lastNight.hours : "—"}
+                <span className="sc-denom">h</span>
+              </div>
+              <p className="sc-sub" style={{ marginTop: 4 }}>
+                {d.lastNight
+                  ? (d.lastNight.hours >= 7.5 ? "Well rested ✓" : `${(7.5 - d.lastNight.hours).toFixed(1)}h short of target`)
+                  : "log tonight"}
+              </p>
+            </div>
+            {sleepPoints && sleepPoints.length >= 2 && (
+              <div style={{ flex: 1, minWidth: 0, paddingLeft: 16 }}>
+                <Sparkline data={sleepPoints} />
+                <p style={{ fontSize: 9, color: "var(--muted)", textAlign: "right", marginTop: 2, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>7-day</p>
+              </div>
+            )}
           </div>
-          <div className="training-dots">
-            {Array.from({ length: totalGoal }).map((_, i) => (
-              <span key={i} className={i < totalSessions ? "filled" : ""} />
-            ))}
-          </div>
-          <p className="sc-sub">
-            {d.jjCount || 0} JJ · {d.gymCount || 0} Gym
-          </p>
-        </div>
-
-        {/* Sleep */}
-        <div className="sc blue">
-          <div className="sc-label">Sleep</div>
-          <div className="sc-num">
-            {d.lastNight ? d.lastNight.hours : "—"}
-            <span className="sc-denom">h</span>
-          </div>
-          {sleepPoints && sleepPoints.length >= 2 ? (
-            <Sparkline data={sleepPoints} />
-          ) : (
-            <div className="bar blue">
+          {!(sleepPoints && sleepPoints.length >= 2) && (
+            <div className="bar blue" style={{ marginTop: 10 }}>
               <span style={{ "--target": d.lastNight ? Math.min(100, Math.round((d.lastNight.hours / 8) * 100)) + "%" : "0%" }} />
             </div>
           )}
-          <p className="sc-sub">{d.streak > 0 ? `${d.streak}d streak` : "log tonight"}</p>
         </div>
 
       </div>
