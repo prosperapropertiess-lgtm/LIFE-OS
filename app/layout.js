@@ -41,8 +41,10 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Life OS" />
+        {/* Prevent dark flash before CSS loads */}
+        <style>{`html,body{background:#f5f5f5}`}</style>
       </head>
-      <body className={`${inter.variable} ${hanken.variable} ${inter.className}`}>
+      <body className={`${inter.variable} ${hanken.variable} ${inter.className}`} style={{ background: "#f5f5f5" }}>
         {children}
         <script
           dangerouslySetInnerHTML={{
