@@ -146,8 +146,16 @@ function PushPrompt() {
 
 export default function Shell({ d, today }) {
   const [tab, setTab] = useState(0);
-  // Track which tabs have been visited — panels get "entered" class only on first visit
   const [visited, setVisited] = useState(new Set([0]));
+
+  // Hide the pure-HTML loader injected by layout.js
+  useEffect(() => {
+    const el = document.getElementById("__loader");
+    if (!el) return;
+    el.classList.add("out");
+    const t = setTimeout(() => el.remove(), 380);
+    return () => clearTimeout(t);
+  }, []);
 
   function goTab(i) {
     setTab(i);
