@@ -1145,7 +1145,7 @@ button.primary:disabled { opacity: 0.4; cursor: default; transform: none; }
 
 /* ─── DAY BRIEFING CARD ──────────────────────────────────── */
 
-/* Circle grid — 3 columns, 2 rows */
+/* Progress circle grid — 3 columns, 2 rows */
 .brief-pill-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1153,28 +1153,29 @@ button.primary:disabled { opacity: 0.4; cursor: default; transform: none; }
   margin: 0 0 14px;
 }
 .brief-pill {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: var(--card-2);
-  border: 1.5px solid var(--border);
-  border-radius: 50%;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
   aspect-ratio: 1;
-  gap: 2px;
-  transition: background 0.2s, border-color 0.2s;
 }
-.brief-pill.hit {
-  background: var(--accent);
-  border-color: var(--accent);
+.brief-pill-svg {
+  width: 100%; height: 100%;
 }
-.brief-pill-label {
-  font-size: 10px; font-weight: 600; color: var(--muted);
-  letter-spacing: 0.01em; text-align: center; line-height: 1.2;
+.brief-pill-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1px;
+  pointer-events: none;
 }
-.brief-pill.hit .brief-pill-label { color: rgba(255,255,255,0.65); }
 .brief-pill-val {
-  font-size: 14px; font-weight: 800; color: var(--text);
+  font-size: 13px; font-weight: 800; color: var(--text);
   letter-spacing: -0.03em; line-height: 1;
 }
-.brief-pill.hit .brief-pill-val { color: #fff; }
+.brief-pill-label {
+  font-size: 9px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.01em; text-align: center; line-height: 1.2;
+  text-transform: uppercase;
+}
 
 /* ─── SWIPE TO LOG ───────────────────────────────────────── */
 

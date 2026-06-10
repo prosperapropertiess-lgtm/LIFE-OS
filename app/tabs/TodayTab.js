@@ -307,14 +307,34 @@ function extractTime(text) {
 }
 
 function BriefPill({ label, done, goal, single }) {
-  // single=true → just ✓ or — (weight, sleep, creatine, supplements)
-  const hit = single ? done : done >= goal;
+  const pct  = single ? (done ? 1 : 0) : Math.min(1, done / (goal || 1));
+  const hit  = pct >= 1;
+  const R    = 26;
+  const circ = 2 * Math.PI * R;
+  const arc  = circ * pct;
+
   return (
-    <div className={`brief-pill${hit ? " hit" : ""}`}>
-      <span className="brief-pill-label">{label}</span>
-      <span className="brief-pill-val">
-        {single ? (done ? "✓" : "—") : `${done}/${goal}`}
-      </span>
+    <div className="brief-pill">
+      <svg viewBox="0 0 64 64" className="brief-pill-svg" aria-hidden="true">
+        {/* track */}
+        <circle cx="32" cy="32" r={R} fill="none" stroke="var(--border)" strokeWidth="3.5" />
+        {/* progress arc */}
+        {pct > 0 && (
+          <circle
+            cx="32" cy="32" r={R}
+            fill="none"
+            stroke="#000000"
+            strokeWidth="3.5"
+            strokeDasharray={`${arc} ${circ}`}
+            strokeLinecap="round"
+            transform="rotate(-90 32 32)"
+          />
+        )}
+      </svg>
+      <div className="brief-pill-center">
+        <span className="brief-pill-val">{single ? (done ? "✓" : "—") : `${done}/${goal}`}</span>
+        <span className="brief-pill-label">{label}</span>
+      </div>
     </div>
   );
 }
