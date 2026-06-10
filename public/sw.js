@@ -1,12 +1,15 @@
-const CACHE = "life-os-v1";
+// Bump this version any time you want to flush stale caches
+const CACHE = "life-os-v3";
 
-// Install: cache the shell
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/"])));
+// Only cache static assets — never the HTML page itself
+const STATIC_EXTS = /\.(js|css|png|jpg|jpeg|svg|ico|woff2?|ttf)(\?.*)?$/;
+
+// Install: claim immediately, no pre-caching of HTML
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: wipe every old cache version
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -16,27 +19,45 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
-// Fetch: network-first, fall back to cache
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
-  if (e.request.url.includes("/api/")) return; // never cache API
+  const { request } = e;
+  if (request.method !== "GET") return;
 
-  e.respondWith(
-    fetch(e.request)
-      .then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, clone));
-        return res;
+  const url = new URL(request.url);
+
+  // Never intercept API calls or Next.js internal routes
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/data/")) return;
+
+  // HTML navigation requests — always go to network (so loading.js shows fresh)
+  if (request.mode === "navigate") {
+    e.respondWith(fetch(request));
+    return;
+  }
+
+  // Static assets — cache first, then network
+  if (STATIC_EXTS.test(url.pathname)) {
+    e.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then((c) => c.put(request, clone));
+          }
+          return res;
+        });
       })
-      .catch(() => caches.match(e.request))
-  );
+    );
+    return;
+  }
+
+  // Everything else — network only
 });
 
-// Push: show notification
+// Push notifications
 self.addEventListener("push", (e) => {
   let data = { title: "Life OS", body: "Tap to open your dashboard." };
   try { data = e.data?.json() ?? data; } catch {}
-
   e.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
@@ -50,7 +71,6 @@ self.addEventListener("push", (e) => {
   );
 });
 
-// Notification click: focus or open the app
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   const target = e.notification.data?.url || "/";
