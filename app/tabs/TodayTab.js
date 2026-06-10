@@ -456,33 +456,33 @@ export default function TodayTab({ d, today }) {
       <p className="section-label">Today</p>
       <div className="stats-grid">
 
-        {/* Calories */}
+        {/* Calories — countdown */}
         <div className="sc green" style={{ cursor: "pointer" }} onClick={() => setFoodOpen((o) => !o)}>
-          <div className="sc-label">Calories</div>
+          <div className="sc-label">Calories left</div>
           <div className="sc-num">
-            {d.nutrition?.calories || 0}
-            <span className="sc-denom">/{d.targets?.calories || 2500}</span>
+            {Math.max(0, (d.targets?.calories || 2500) - (d.nutrition?.calories || 0))}
+            <span className="sc-denom">cal</span>
           </div>
           <div className="bar green">
             <span style={{ "--target": calPct + "%" }} />
           </div>
           <p className={"sc-sub" + (calPct >= 100 ? " hit" : "")}>
-            {calPct >= 100 ? "Goal hit ✓" : `${(d.targets?.calories || 2500) - (d.nutrition?.calories || 0)} left`}
+            {calPct >= 100 ? "Goal hit ✓" : `${d.nutrition?.calories || 0} eaten`}
           </p>
         </div>
 
-        {/* Protein */}
+        {/* Protein — countdown */}
         <div className="sc violet">
-          <div className="sc-label">Protein</div>
+          <div className="sc-label">Protein left</div>
           <div className="sc-num">
-            {d.nutrition?.protein || 0}
+            {Math.max(0, (d.targets?.protein || 200) - (d.nutrition?.protein || 0))}
             <span className="sc-denom">g</span>
           </div>
           <div className="bar">
             <span style={{ "--target": proPct + "%" }} />
           </div>
           <p className={"sc-sub" + (proPct >= 100 ? " hit" : "")}>
-            {proPct >= 100 ? "Goal hit ✓" : `goal ${d.targets?.protein || 200}g`}
+            {proPct >= 100 ? "Goal hit ✓" : `${d.nutrition?.protein || 0}g eaten`}
           </p>
         </div>
 
