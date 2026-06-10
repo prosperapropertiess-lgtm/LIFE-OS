@@ -369,6 +369,12 @@ export default function LogTab({ today }) {
       </div>
 
       <div className="log-forms" style={{ paddingTop: 16 }}>
+        {/* Swipe-to-log habits — right under the log box */}
+        <p className="section-label" style={{ marginTop: 0 }}>Daily habits</p>
+        <SwipeToLog id="creatine" emoji="💊" name="Creatine" today={today} />
+        <SwipeToLog id="supps"    emoji="🧴" name="Supplements" today={today} />
+
+        <div style={{ height: 16 }} />
         <p className="section-label" style={{ marginTop: 0 }}>Structured entry</p>
 
         <div className="log-tile-grid">
@@ -385,13 +391,6 @@ export default function LogTab({ today }) {
             </button>
           ))}
         </div>
-
-        <div style={{ height: 16 }} />
-
-        {/* Swipe-to-log habits */}
-        <p className="section-label" style={{ marginTop: 0 }}>Daily habits</p>
-        <SwipeToLog id="creatine" emoji="💊" name="Creatine" today={today} />
-        <SwipeToLog id="supps"    emoji="🧴" name="Supplements" today={today} />
 
         <div style={{ height: 12 }} />
       </div>
