@@ -1,8 +1,71 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import QuickForm from "../QuickForm.js";
 import FoodLogger from "../FoodLogger.js";
+
+// ── Swipe-to-log (creatine / supplements) ────────────────────
+
+function SwipeToLog({ id, emoji, name, today }) {
+  const key = `habit-${id}-${today}`;
+  const [done, setDone]     = useState(false);
+  const [dragPct, setDragPct] = useState(0);
+  const dragging = useRef(false);
+  const startX   = useRef(0);
+  const trackRef = useRef(null);
+
+  useEffect(() => {
+    try { setDone(localStorage.getItem(key) === "1"); } catch {}
+  }, [key]);
+
+  function onPointerDown(e) {
+    if (done) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragging.current = true;
+    startX.current = e.clientX;
+  }
+
+  function onPointerMove(e) {
+    if (!dragging.current || done) return;
+    const trackW = (trackRef.current?.offsetWidth || 260) - 52;
+    const dx = Math.max(0, Math.min(e.clientX - startX.current, trackW));
+    setDragPct(dx / trackW);
+  }
+
+  function onPointerUp() {
+    if (!dragging.current) return;
+    dragging.current = false;
+    if (dragPct >= 0.78) {
+      setDone(true);
+      try { localStorage.setItem(key, "1"); } catch {}
+      if (navigator.vibrate) navigator.vibrate(40);
+    }
+    setDragPct(0);
+  }
+
+  return (
+    <div className={`swipe-log${done ? " done" : ""}`} ref={trackRef}>
+      <span className="swipe-label">{emoji} {name}</span>
+      {done ? (
+        <span className="swipe-done-badge">✓ Done</span>
+      ) : (
+        <div
+          className="swipe-track"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
+          <div className="swipe-fill" style={{ width: `${dragPct * 100}%` }} />
+          <div className="swipe-thumb" style={{ left: `calc(${dragPct * 100}% * (1 - 52px / 100%))` }}>
+            <span>›</span>
+          </div>
+          <span className="swipe-hint">slide to log</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Bottom sheet modal ───────────────────────────────────────
 
@@ -311,6 +374,13 @@ export default function LogTab({ today }) {
             </button>
           ))}
         </div>
+
+        <div style={{ height: 16 }} />
+
+        {/* Swipe-to-log habits */}
+        <p className="section-label" style={{ marginTop: 0 }}>Daily habits</p>
+        <SwipeToLog id="creatine" emoji="💊" name="Creatine" today={today} />
+        <SwipeToLog id="supps"    emoji="🧴" name="Supplements" today={today} />
 
         <div style={{ height: 12 }} />
       </div>

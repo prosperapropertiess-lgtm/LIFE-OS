@@ -306,47 +306,61 @@ function extractTime(text) {
   return `${h}:${String(min).padStart(2, "0")} ${ampm}`;
 }
 
-function DayBriefing({ d, today }) {
-  const jjLeft  = Math.max(0, (d.goals?.jj  || 3) - (d.jjCount  || 0));
-  const gymLeft = Math.max(0, (d.goals?.gym || 2) - (d.gymCount || 0));
+function BriefPill({ label, done, goal, single }) {
+  // single=true → just ✓ or — (weight, sleep, creatine, supplements)
+  const hit = single ? done : done >= goal;
+  return (
+    <div className={`brief-pill${hit ? " hit" : ""}`}>
+      <span className="brief-pill-label">{label}</span>
+      <span className="brief-pill-val">
+        {single ? (done ? "✓" : "—") : `${done}/${goal}`}
+      </span>
+    </div>
+  );
+}
 
-  // Items: today's tasks + next 3 upcoming
+function DayBriefing({ d, today }) {
+  const [creatine, setCreatine] = useState(false);
+  const [supps, setSupps]       = useState(false);
+
+  useEffect(() => {
+    try {
+      setCreatine(localStorage.getItem(`habit-creatine-${today}`) === "1");
+      setSupps(localStorage.getItem(`habit-supps-${today}`) === "1");
+    } catch {}
+  }, [today]);
+
+  const jjDone  = d.jjCount  || 0;
+  const gymDone = d.gymCount || 0;
+  const jjGoal  = d.goals?.jj  || 3;
+  const gymGoal = d.goals?.gym || 2;
+
+  // Task items
   const todayTasks    = (d.dueNow  || []).slice(0, 3);
   const upcomingTasks = (d.upcoming || []).slice(0, 3);
   const items = [...todayTasks, ...upcomingTasks].slice(0, 4);
 
-  // Smart nudges
+  // Sleep nudge only
   const nudges = [];
-
-  // Detect a shift task today to make gym nudge specific
-  const shiftTask = todayTasks.find((t) =>
-    /shift|work|job|office/i.test(t.task)
-  );
-  const shiftTime = shiftTask ? extractTime(shiftTask.task) : null;
-
-  if (gymLeft > 0) {
-    if (shiftTime) {
-      nudges.push(`${gymLeft} gym session${gymLeft > 1 ? "s" : ""} left — good window before your ${shiftTime} shift.`);
-    } else {
-      nudges.push(`${gymLeft} gym session${gymLeft > 1 ? "s" : ""} left this week. Find a window today.`);
-    }
-  }
-  if (jjLeft > 0) {
-    nudges.push(`${jjLeft} Jiu Jitsu session${jjLeft > 1 ? "s" : ""} left to hit your weekly goal.`);
-  }
   if (d.lastNight && Number(d.lastNight.hours) < 6) {
-    nudges.push(`You slept ${d.lastNight.hours}h last night. Take it easy on intensity today.`);
+    nudges.push(`You slept ${d.lastNight.hours}h last night. Take it easy today.`);
   }
-  if (gymLeft === 0 && jjLeft === 0) {
-    nudges.push("Training goals done for the week. Rest and recover.");
-  }
-
-  if (items.length === 0 && nudges.length === 0) return null;
 
   return (
     <div className="day-brief-card">
       <p className="day-brief-title">Your week at a glance</p>
 
+      {/* ── Pill grid ── */}
+      <div className="brief-pill-grid">
+        <BriefPill label="Jiu Jitsu" done={jjDone}  goal={jjGoal}  />
+        <BriefPill label="Gym"       done={gymDone} goal={gymGoal} />
+        <BriefPill label="Weight"    done={d.todayWeight ? 1 : 0} goal={1} single />
+        <BriefPill label="Sleep"     done={d.todaySlept  ? 1 : 0} goal={1} single />
+        <BriefPill label="Creatine"  done={creatine ? 1 : 0} goal={1} single />
+        <BriefPill label="Supps"     done={supps    ? 1 : 0} goal={1} single />
+      </div>
+
+      {/* ── Task list ── */}
       {items.length > 0 && (
         <div className="day-brief-items">
           {items.map((t, i) => {
@@ -356,9 +370,7 @@ function DayBriefing({ d, today }) {
               <div key={t.id || i} className="day-brief-row">
                 <span className="day-brief-icon">{typeIcon(t.type)}</span>
                 <span className="day-brief-task">{t.task}</span>
-                <span className="day-brief-when">
-                  {time ? `${day} · ${time}` : day}
-                </span>
+                <span className="day-brief-when">{time ? `${day} · ${time}` : day}</span>
               </div>
             );
           })}
@@ -369,8 +381,7 @@ function DayBriefing({ d, today }) {
         <div className="day-brief-nudges">
           {nudges.map((n, i) => (
             <p key={i} className="day-brief-nudge">
-              <span className="day-brief-nudge-dot" />
-              {n}
+              <span className="day-brief-nudge-dot" />{n}
             </p>
           ))}
         </div>
