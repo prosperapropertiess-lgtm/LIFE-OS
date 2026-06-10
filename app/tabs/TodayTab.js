@@ -68,38 +68,14 @@ function Sparkline({ data }) {
 export default function TodayTab({ d, today }) {
   const router = useRouter();
 
-  const [sleepLogged, setSleepLogged] = useState(!!d.todaySlept);
   const [weightLogged, setWeightLogged] = useState(!!d.todayWeight);
-  const [sleepDisplay, setSleepDisplay] = useState(
-    d.todaySlept ? `${d.todaySlept.hours}h · ${d.todaySlept.quality || ""}`.replace(/·\s*$/, "") : null
-  );
   const [weightDisplay, setWeightDisplay] = useState(
     d.todayWeight ? `${d.todayWeight.weight_kg} kg` : null
   );
-  const [sleepOpen, setSleepOpen] = useState(false);
   const [weightOpen, setWeightOpen] = useState(false);
-  const [sleepHours, setSleepHours] = useState("");
-  const [sleepQuality, setSleepQuality] = useState("Good");
   const [weightKg, setWeightKg] = useState("");
-  const [sleepSaving, setSleepSaving] = useState(false);
   const [weightSaving, setWeightSaving] = useState(false);
-  const [sleepErr, setSleepErr] = useState(null);
   const [weightErr, setWeightErr] = useState(null);
-
-  async function saveSleep() {
-    if (!sleepHours.trim() || sleepSaving) return;
-    setSleepSaving(true); setSleepErr(null);
-    try {
-      const r = await fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "sleep", hours: sleepHours, quality: sleepQuality, date: today }) });
-      const data = await r.json();
-      if (r.ok && data.ok) {
-        setSleepLogged(true); setSleepOpen(false);
-        setSleepDisplay(`${sleepHours}h · ${sleepQuality}`);
-        setSleepHours(""); router.refresh();
-      } else { setSleepErr(data.message || "Couldn't save."); }
-    } catch { setSleepErr("Try again."); }
-    finally { setSleepSaving(false); }
-  }
 
   async function saveWeight() {
     if (!weightKg.trim() || weightSaving) return;
@@ -141,12 +117,6 @@ export default function TodayTab({ d, today }) {
       {/* ── Habit pills ── */}
       <div className="habits-row">
         <HabitPill
-          label="Sleep"
-          logged={sleepLogged}
-          display={sleepDisplay}
-          onToggle={() => setSleepOpen((o) => !o)}
-        />
-        <HabitPill
           label="Weight"
           logged={weightLogged}
           display={weightDisplay}
@@ -154,21 +124,6 @@ export default function TodayTab({ d, today }) {
           onToggle={() => setWeightOpen((o) => !o)}
         />
       </div>
-
-      {sleepOpen && !sleepLogged && (
-        <div className="habit-inline">
-          <div className="hi-row">
-            <input className="habit-input" type="text" inputMode="decimal" placeholder="hours slept" value={sleepHours} onChange={(e) => setSleepHours(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveSleep()} autoFocus />
-            <select className="habit-select" value={sleepQuality} onChange={(e) => setSleepQuality(e.target.value)}>
-              <option>Poor</option><option>OK</option><option>Good</option>
-            </select>
-            <button type="button" className="habit-btn" onClick={saveSleep} disabled={!sleepHours.trim() || sleepSaving}>
-              {sleepSaving ? <span className="qa-spin sm" /> : "Save"}
-            </button>
-          </div>
-          {sleepErr && <p className="habit-err">{sleepErr}</p>}
-        </div>
-      )}
 
       {weightOpen && !weightLogged && (
         <div className="habit-inline">
