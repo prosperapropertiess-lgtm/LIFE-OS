@@ -1,5 +1,5 @@
 // Bump this version any time you want to flush stale caches
-const CACHE = "life-os-v3";
+const CACHE = "life-os-v4";
 
 // Only cache static assets — never the HTML page itself
 const STATIC_EXTS = /\.(js|css|png|jpg|jpeg|svg|ico|woff2?|ttf)(\?.*)?$/;

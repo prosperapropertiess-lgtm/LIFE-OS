@@ -148,12 +148,15 @@ export default function Shell({ d, today }) {
   const [tab, setTab] = useState(0);
   const [visited, setVisited] = useState(new Set([0]));
 
-  // Hide the pure-HTML loader injected by layout.js
+  // Hide the pure-HTML loader injected by layout.js.
+  // Minimum 1800ms so the animation is actually visible before the app appears.
   useEffect(() => {
     const el = document.getElementById("__loader");
     if (!el) return;
-    el.classList.add("out");
-    const t = setTimeout(() => el.remove(), 380);
+    const t = setTimeout(() => {
+      el.classList.add("out");
+      setTimeout(() => el.remove(), 400);
+    }, 1800);
     return () => clearTimeout(t);
   }, []);
 

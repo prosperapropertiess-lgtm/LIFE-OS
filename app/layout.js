@@ -48,9 +48,11 @@ export default function RootLayout({ children }) {
             position: fixed; inset: 0; z-index: 9999;
             background: #f5f5f5;
             display: flex; flex-direction: column; justify-content: flex-end;
+            transition: opacity 0.4s ease;
+          }
+          #__loader-inner {
             padding: 0 28px calc(68px + env(safe-area-inset-bottom, 0px)) 28px;
-            max-width: 480px; margin: 0 auto;
-            transition: opacity 0.35s ease;
+            max-width: 480px; width: 100%; margin: 0 auto;
           }
           #__loader.out { opacity: 0; pointer-events: none; }
 
@@ -106,18 +108,20 @@ export default function RootLayout({ children }) {
 
         {/* Pure HTML/CSS loader — visible before any JS runs */}
         <div id="__loader" aria-hidden="true">
-          <p id="__loader-label">Life OS</p>
-          <h1 id="__loader-heading">
-            <span className="l1">Welcome back,</span>
-            <span className="l2">Ebin.</span>
-            <span className="l3">Good things are</span>
-            <span className="l4">being cooked.</span>
-          </h1>
-          <div id="__loader-bar-wrap">
-            <div id="__loader-track">
-              <div id="__loader-fill" />
+          <div id="__loader-inner">
+            <p id="__loader-label">Life OS</p>
+            <h1 id="__loader-heading">
+              <span className="l1">Welcome back,</span>
+              <span className="l2">Ebin.</span>
+              <span className="l3">Good things are</span>
+              <span className="l4">being cooked.</span>
+            </h1>
+            <div id="__loader-bar-wrap">
+              <div id="__loader-track">
+                <div id="__loader-fill" />
+              </div>
+              <p id="__loader-status">Loading your dashboard…</p>
             </div>
-            <p id="__loader-status">Loading your dashboard…</p>
           </div>
         </div>
 
