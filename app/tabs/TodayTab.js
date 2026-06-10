@@ -333,16 +333,8 @@ export default function TodayTab({ d, today }) {
       {/* ── Header ── */}
       <div className="page-header">
         <div className="hd-left">
-          <div className="hd-date">{prettyDate(today)}</div>
           <div className="hd-greeting">{greeting()},<br/>Ebin</div>
-        </div>
-        <div className="avatar-wrap">
-          <div className={`avatar${(d.logStreak || 0) >= 3 ? " streak" : ""}`}>E</div>
-          {(d.logStreak || 0) >= 2 && (
-            <div className="streak-badge" title={`${d.logStreak} day streak`}>
-              🔥{d.logStreak}
-            </div>
-          )}
+          <div className="hd-date" style={{ marginTop: 6, fontSize: 13, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--muted)" }}>{prettyDate(today)}</div>
         </div>
       </div>
 

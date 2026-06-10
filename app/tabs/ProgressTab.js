@@ -275,10 +275,9 @@ export default function ProgressTab({ d }) {
       {/* ── Header ── */}
       <div className="page-header">
         <div className="hd-left">
-          <div className="hd-date">{weekLabel}</div>
           <div className="hd-greeting">Weekly<br/>Progress</div>
+          <div className="hd-date" style={{ marginTop: 6, fontSize: 13, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--muted)" }}>{weekLabel}</div>
         </div>
-        <div className="avatar">E</div>
       </div>
 
       {/* ── Weight trend ── */}
