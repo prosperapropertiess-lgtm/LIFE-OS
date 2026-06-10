@@ -1,48 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { greeting, prettyDate, shortDate } from "../../lib/time.js";
 import { completeTask } from "../actions.js";
 
 function pct(n, goal) {
   return Math.min(100, Math.round((n / goal) * 100));
-}
-
-function HabitPill({ label, logged, display, delta, onToggle }) {
-  return (
-    <div
-      className={`habit-pill${logged ? " done" : ""}`}
-      onClick={logged ? undefined : onToggle}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && !logged && onToggle?.()}
-    >
-      <div className="hp-text">
-        <div className="hp-name">{label}</div>
-        <div className="hp-sub">
-          {logged ? (
-            <>
-              {display}
-              {delta != null && (
-                <span className={`hp-delta ${delta <= 0 ? "down" : "up"}`}>
-                  {" "}{delta <= 0 ? "▼" : "▲"} {Math.abs(delta)}kg
-                </span>
-              )}
-            </>
-          ) : "tap to log"}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CheckSvg() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-      <path d="M2.5 7l3.5 3.5 5.5-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
 }
 
 // 7-point sparkline from sleep data
@@ -60,44 +24,305 @@ function Sparkline({ data }) {
   const d = `M${pts.join(" L")}`;
   return (
     <svg className="sparkline" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      <path d={d} fill="none" stroke="#0d9488" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d={d} fill="none" stroke="var(--accent)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
 
-export default function TodayTab({ d, today }) {
-  const router = useRouter();
+// ── Before you leave checklist ──────────────────────────────
 
-  const [weightLogged, setWeightLogged] = useState(!!d.todayWeight);
-  const [weightDisplay, setWeightDisplay] = useState(
-    d.todayWeight ? `${d.todayWeight.weight_kg} kg` : null
-  );
-  const [weightOpen, setWeightOpen] = useState(false);
-  const [weightKg, setWeightKg] = useState("");
-  const [weightSaving, setWeightSaving] = useState(false);
-  const [weightErr, setWeightErr] = useState(null);
+const LEAVE_ITEMS = [
+  "Keys",
+  "ID card",
+  "Door access card",
+  "Box cutter",
+  "Lunch",
+  "A pen",
+  "Lock the door",
+];
 
-  async function saveWeight() {
-    if (!weightKg.trim() || weightSaving) return;
-    setWeightSaving(true); setWeightErr(null);
+function LeaveChecklist() {
+  const todayKey = `checklist-${new Date().toLocaleDateString("en-CA")}`;
+  const [checked, setChecked] = useState(() => {
     try {
-      const r = await fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "weight", weight_kg: weightKg, date: today }) });
-      const data = await r.json();
-      if (r.ok && data.ok) {
-        setWeightLogged(true); setWeightOpen(false);
-        setWeightDisplay(`${weightKg} kg`);
-        setWeightKg(""); router.refresh();
-      } else { setWeightErr(data.message || "Couldn't save."); }
-    } catch { setWeightErr("Try again."); }
-    finally { setWeightSaving(false); }
+      return JSON.parse(localStorage.getItem(todayKey) || "[]");
+    } catch { return []; }
+  });
+
+  function toggle(item) {
+    setChecked((prev) => {
+      const next = prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item];
+      try { localStorage.setItem(todayKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
   }
 
+  const allDone = checked.length === LEAVE_ITEMS.length;
+
+  return (
+    <div className={`card checklist-interactive${allDone ? " all-done" : ""}`}>
+      <div className="cl-header">
+        <h2>Before you leave</h2>
+        {allDone && <span className="cl-badge">All set ✓</span>}
+      </div>
+      <div className="cl-items">
+        {LEAVE_ITEMS.map((item) => {
+          const done = checked.includes(item);
+          return (
+            <button
+              key={item}
+              type="button"
+              className={`cl-item${done ? " done" : ""}`}
+              onClick={() => toggle(item)}
+            >
+              <span className="cl-box">{done ? "✓" : ""}</span>
+              <span className="cl-label">{item}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Compact quick-log bar ────────────────────────────────────
+
+function QuickLogBar({ todayWeight, todaySlept, today }) {
+  const router = useRouter();
+
+  // Weight state
+  const [wLogged, setWLogged] = useState(!!todayWeight);
+  const [wVal, setWVal] = useState(todayWeight ? String(todayWeight.weight_kg) : "");
+  const [wOpen, setWOpen] = useState(false);
+  const [wBusy, setWBusy] = useState(false);
+  const [wErr, setWErr] = useState(null);
+
+  // Sleep state
+  const [sLogged, setSLogged] = useState(!!todaySlept);
+  const [sVal, setSVal] = useState(todaySlept ? String(todaySlept.hours) : "");
+  const [sOpen, setSOpen] = useState(false);
+  const [sBusy, setSBusy] = useState(false);
+  const [sErr, setSErr] = useState(null);
+
+  async function saveWeight() {
+    if (!wVal.trim() || wBusy) return;
+    setWBusy(true); setWErr(null);
+    try {
+      const r = await fetch("/api/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "weight", weight_kg: wVal, date: today }),
+      });
+      const data = await r.json();
+      if (r.ok && data.ok) {
+        setWLogged(true); setWOpen(false); router.refresh();
+      } else {
+        setWErr(data.message || "Couldn't save.");
+      }
+    } catch { setWErr("Try again."); }
+    finally { setWBusy(false); }
+  }
+
+  async function saveSleep() {
+    if (!sVal.trim() || sBusy) return;
+    setSBusy(true); setSErr(null);
+    try {
+      const r = await fetch("/api/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "sleep", hours: sVal, quality: "Good", date: today }),
+      });
+      const data = await r.json();
+      if (r.ok && data.ok) {
+        setSLogged(true); setSOpen(false); router.refresh();
+      } else {
+        setSErr(data.message || "Couldn't save.");
+      }
+    } catch { setSErr("Try again."); }
+    finally { setSBusy(false); }
+  }
+
+  return (
+    <div className="ql-bar">
+      {/* Weight chip */}
+      <div className="ql-chip-wrap">
+        <button
+          type="button"
+          className={`ql-chip${wLogged ? " done" : ""}`}
+          onClick={() => !wLogged && setWOpen((o) => !o)}
+        >
+          <span className="ql-icon">⚖️</span>
+          <span className="ql-text">
+            {wLogged ? `${wVal} kg` : "Log weight"}
+          </span>
+          {wLogged && <span className="ql-check">✓</span>}
+        </button>
+        {wOpen && !wLogged && (
+          <div className="ql-form">
+            <input
+              className="ql-input"
+              type="text"
+              inputMode="decimal"
+              placeholder="e.g. 82.5"
+              value={wVal}
+              onChange={(e) => setWVal(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && saveWeight()}
+              autoFocus
+            />
+            <button type="button" className="ql-save" onClick={saveWeight} disabled={!wVal.trim() || wBusy}>
+              {wBusy ? <span className="qa-spin sm" /> : "Save"}
+            </button>
+          </div>
+        )}
+        {wErr && <p className="ql-err">{wErr}</p>}
+      </div>
+
+      {/* Sleep chip */}
+      <div className="ql-chip-wrap">
+        <button
+          type="button"
+          className={`ql-chip${sLogged ? " done" : ""}`}
+          onClick={() => !sLogged && setSOpen((o) => !o)}
+        >
+          <span className="ql-icon">😴</span>
+          <span className="ql-text">
+            {sLogged ? `${sVal}h sleep` : "Log sleep"}
+          </span>
+          {sLogged && <span className="ql-check">✓</span>}
+        </button>
+        {sOpen && !sLogged && (
+          <div className="ql-form">
+            <input
+              className="ql-input"
+              type="text"
+              inputMode="decimal"
+              placeholder="hours, e.g. 7.5"
+              value={sVal}
+              onChange={(e) => setSVal(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && saveSleep()}
+              autoFocus
+            />
+            <button type="button" className="ql-save" onClick={saveSleep} disabled={!sVal.trim() || sBusy}>
+              {sBusy ? <span className="qa-spin sm" /> : "Save"}
+            </button>
+          </div>
+        )}
+        {sErr && <p className="ql-err">{sErr}</p>}
+      </div>
+    </div>
+  );
+}
+
+function ExperimentCard({ experiment }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(experiment || "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  async function save() {
+    if (!val.trim() || busy) return;
+    setBusy(true); setErr(null);
+    try {
+      const r = await fetch("/api/set-experiment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ experiment: val }),
+      });
+      const data = await r.json();
+      if (r.ok && data.ok) { setEditing(false); router.refresh(); }
+      else setErr("Couldn't save.");
+    } catch { setErr("Try again."); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="card experiment">
+      <div className="exp-header">
+        <h2>This week&apos;s experiment</h2>
+        {!editing && (
+          <button type="button" className="exp-edit-btn" onClick={() => { setVal(experiment || ""); setEditing(true); }}>
+            {experiment ? "Edit" : "Set"}
+          </button>
+        )}
+      </div>
+      {editing ? (
+        <div className="exp-form">
+          <input
+            className="exp-input"
+            type="text"
+            placeholder="e.g. No phone before 8am"
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && save()}
+            autoFocus
+          />
+          <div className="exp-actions">
+            <button type="button" className="ql-save" onClick={save} disabled={!val.trim() || busy}>
+              {busy ? <span className="qa-spin sm" /> : "Save"}
+            </button>
+            <button type="button" className="ghost-btn" onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+          {err && <p className="ql-err">{err}</p>}
+        </div>
+      ) : experiment ? (
+        <p>{experiment}</p>
+      ) : (
+        <p className="exp-placeholder">No experiment set — tap Set to add your focus for this week.</p>
+      )}
+    </div>
+  );
+}
+
+// ── Morning brief card ───────────────────────────────────────
+
+function MorningBrief() {
+  const todayKey = `brief-${new Date().toLocaleDateString("en-CA")}`;
+  const [brief, setBrief] = useState(() => {
+    try { return localStorage.getItem(todayKey) || null; } catch { return null; }
+  });
+  const [loading, setLoading] = useState(!brief);
+
+  useEffect(() => {
+    if (brief) return;
+    fetch("/api/brief")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.brief) {
+          setBrief(data.brief);
+          try { localStorage.setItem(todayKey, data.brief); } catch {}
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!loading && !brief) return null;
+
+  return (
+    <div className="brief-card">
+      {loading ? (
+        <div className="brief-skeleton">
+          <span className="brief-shimmer" />
+          <span className="brief-shimmer short" />
+        </div>
+      ) : (
+        <>
+          <span className="brief-icon">☀️</span>
+          <p className="brief-text">{brief}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function TodayTab({ d, today }) {
+  const [foodOpen, setFoodOpen] = useState(false);
   const totalSessions = (d.jjCount || 0) + (d.gymCount || 0);
   const totalGoal = (d.goals?.jj || 3) + (d.goals?.gym || 2);
   const calPct = pct(d.nutrition?.calories || 0, d.targets?.calories || 2500);
   const proPct = pct(d.nutrition?.protein || 0, d.targets?.protein || 200);
 
-  // Build sparkline data from recent sleep logs if available
   const sleepPoints = d.recentSleep
     ? d.recentSleep.slice(0, 7).reverse().map((s) => s.hours)
     : null;
@@ -111,38 +336,28 @@ export default function TodayTab({ d, today }) {
           <div className="hd-date">{prettyDate(today)}</div>
           <div className="hd-greeting">{greeting()},<br/>Ebin</div>
         </div>
-        <div className="avatar">E</div>
-      </div>
-
-      {/* ── Habit pills ── */}
-      <div className="habits-row">
-        <HabitPill
-          label="Weight"
-          logged={weightLogged}
-          display={weightDisplay}
-          delta={d.weight?.delta}
-          onToggle={() => setWeightOpen((o) => !o)}
-        />
-      </div>
-
-      {weightOpen && !weightLogged && (
-        <div className="habit-inline">
-          <div className="hi-row">
-            <input className="habit-input" type="text" inputMode="decimal" placeholder="kg (e.g. 82.5)" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveWeight()} autoFocus />
-            <button type="button" className="habit-btn" onClick={saveWeight} disabled={!weightKg.trim() || weightSaving}>
-              {weightSaving ? <span className="qa-spin sm" /> : "Save"}
-            </button>
-          </div>
-          {weightErr && <p className="habit-err">{weightErr}</p>}
+        <div className="avatar-wrap">
+          <div className={`avatar${(d.logStreak || 0) >= 3 ? " streak" : ""}`}>E</div>
+          {(d.logStreak || 0) >= 2 && (
+            <div className="streak-badge" title={`${d.logStreak} day streak`}>
+              🔥{d.logStreak}
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* ── Morning brief ── */}
+      <MorningBrief />
+
+      {/* ── Quick log bar ── */}
+      <QuickLogBar todayWeight={d.todayWeight} todaySlept={d.todaySlept} today={today} />
 
       {/* ── Stats grid ── */}
       <p className="section-label">Today</p>
       <div className="stats-grid">
 
         {/* Calories */}
-        <div className="sc green">
+        <div className="sc green" style={{ cursor: "pointer" }} onClick={() => setFoodOpen((o) => !o)}>
           <div className="sc-label">Calories</div>
           <div className="sc-num">
             {d.nutrition?.calories || 0}
@@ -207,11 +422,32 @@ export default function TodayTab({ d, today }) {
 
       </div>
 
+      {/* ── Food log (tap calories to expand) ── */}
+      {foodOpen && (
+        <div className="food-log-panel">
+          <div className="flp-header">
+            <span className="flp-title">Today&apos;s food</span>
+            <button type="button" className="flp-close" onClick={() => setFoodOpen(false)}>×</button>
+          </div>
+          {d.nutrition?.entries?.length > 0 ? (
+            <div className="flp-list">
+              {d.nutrition.entries.map((e, i) => (
+                <div key={e.id || i} className="flp-row">
+                  <span className="flp-name">{e.raw_text || e.food_name || "Entry"}</span>
+                  <span className="flp-macros">
+                    {Math.round(e.calories || 0)} cal · {Math.round(e.protein_g || 0)}g pro
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="flp-empty">Nothing logged yet — tap Log to add a meal.</p>
+          )}
+        </div>
+      )}
+
       {/* ── Checklist ── */}
-      <div className="card checklist">
-        <h2>Before you leave</h2>
-        <p>Keys · ID card · door access card · box cutter · lunch · a pen · lock the door</p>
-      </div>
+      <LeaveChecklist />
 
       {/* ── Tasks due ── */}
       {d.dueNow && d.dueNow.length > 0 && (
@@ -235,9 +471,9 @@ export default function TodayTab({ d, today }) {
         </>
       )}
 
-      {/* ── Property focus ── */}
+      {/* ── This week ── */}
       <p className="section-label">This week</p>
-      <div className="stats-grid" style={{ marginBottom: 12 }}>
+      <div className="stats-grid three-col" style={{ marginBottom: 12 }}>
         <div className="sc violet">
           <div className="sc-label">Jiu Jitsu</div>
           <div className="sc-num">{d.jjCount}<span className="sc-denom">/{d.goals?.jj || 3}</span></div>
@@ -258,15 +494,20 @@ export default function TodayTab({ d, today }) {
             {d.gymCount >= (d.goals?.gym || 2) ? "Goal hit ✓" : `${(d.goals?.gym || 2) - d.gymCount} more`}
           </p>
         </div>
+        <div className="sc amber">
+          <div className="sc-label">Property</div>
+          <div className="sc-num">{d.focusHours || 0}<span className="sc-denom">h</span></div>
+          <div className="bar amber">
+            <span style={{ "--target": pct(d.focusHours || 0, 10) + "%" }} />
+          </div>
+          <p className={"sc-sub" + ((d.focusHours || 0) >= 10 ? " hit" : "")}>
+            {(d.focusHours || 0) >= 10 ? "Goal hit ✓" : `${Math.max(0, 10 - (d.focusHours || 0))}h left`}
+          </p>
+        </div>
       </div>
 
       {/* ── Experiment ── */}
-      {d.experiment && (
-        <div className="card experiment">
-          <h2>This week&apos;s experiment</h2>
-          <p>{d.experiment}</p>
-        </div>
-      )}
+      <ExperimentCard experiment={d.experiment} />
 
       <div className="foot">
         <p style={{ fontSize: "12px", color: "var(--hint)" }}>Life OS · your day, in one place</p>

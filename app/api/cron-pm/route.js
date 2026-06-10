@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSupabase } from "../../../lib/supabase.js";
 import { isWeekPlanned } from "../../../lib/data.js";
 import { sendEmail, emailShell } from "../../../lib/email.js";
+import { sendPush } from "../../../lib/push.js";
 import { todayYMD, weekStart, addDays, todayWeekday, prettyDate, shortDate } from "../../../lib/time.js";
-import { CALORIE_TARGET, PROTEIN_TARGET } from "../../../lib/config.js";
+import { CALORIE_TARGET, PROTEIN_TARGET, JJ_GOAL, GYM_GOAL } from "../../../lib/config.js";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,17 @@ export async function GET(request) {
   const results = {};
 
   results.summary = await dailySummary(request);
+
+  // Push: nudge if no food logged today
+  const sb2 = getSupabase();
+  const { data: todayFood } = await sb2.from("food_log").select("id").eq("date", todayYMD()).limit(1);
+  if (!todayFood || todayFood.length === 0) {
+    results.push = await sendPush(
+      "Haven't logged today 🍽️",
+      "Tap to log your food — takes 20 seconds.",
+      "/"
+    );
+  }
 
   if (todayWeekday() === "Sat") {
     const nextMonday = weekStart(addDays(todayYMD(), 7));

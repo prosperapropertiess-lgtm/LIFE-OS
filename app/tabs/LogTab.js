@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import QuickForm from "../QuickForm.js";
 import FoodLogger from "../FoodLogger.js";
 
-// Inline hero input that replaces the old QuickAdd pill row
+// Inline hero input
 function HeroInput() {
   const router = useRouter();
   const [text, setText] = useState("");
@@ -149,25 +149,116 @@ function HeroInput() {
   );
 }
 
-// Accordion wrapper for each form
-function LogSection({ title, icon, children }) {
-  return (
-    <details className="logger">
-      <summary>
-        <span className="logger-icon">{icon}</span>
-        {title}
-        <span className="chev">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </span>
-      </summary>
-      <div className="form-body">{children}</div>
-    </details>
-  );
-}
+const TILES = [
+  {
+    id: "training",
+    emoji: "🥋",
+    name: "Training",
+    form: (today) => (
+      <QuickForm
+        kind="training"
+        title="Log a session"
+        cta="Save session"
+        today={today}
+        fields={[
+          { name: "type", label: "Type", type: "select", options: ["Jiu Jitsu", "Gym"], half: true, default: "Jiu Jitsu" },
+          { name: "date", label: "Date", type: "date", half: true, default: today },
+          { name: "duration_min", label: "Minutes", type: "number", half: true, placeholder: "60" },
+          { name: "energy", label: "Energy", type: "select", options: ["", "Low", "Medium", "High"], half: true, default: "" },
+          { name: "moves_lifts", label: "Moves / weights", type: "text", placeholder: "Armbar from guard, bench 185x5" },
+          { name: "notes", label: "Notes", type: "text", placeholder: "optional" },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "sleep",
+    emoji: "😴",
+    name: "Sleep",
+    form: (today) => (
+      <QuickForm
+        kind="sleep"
+        title="Log last night's sleep"
+        cta="Save sleep"
+        today={today}
+        fields={[
+          { name: "hours", label: "Hours", type: "number", half: true, placeholder: "7.5" },
+          { name: "quality", label: "Quality", type: "select", options: ["Poor", "OK", "Good"], half: true, default: "Good" },
+          { name: "date", label: "Date (morning you woke up)", type: "date", default: today },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "food",
+    emoji: "🍽️",
+    name: "Food",
+    form: () => <FoodLogger />,
+  },
+  {
+    id: "weight",
+    emoji: "⚖️",
+    name: "Weight",
+    form: (today) => (
+      <QuickForm
+        kind="weight"
+        title="Log weight"
+        cta="Save weight"
+        today={today}
+        fields={[
+          { name: "weight_kg", label: "Weight (kg)", type: "number", half: true, placeholder: "82.5" },
+          { name: "date", label: "Date", type: "date", half: true, default: today },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "property",
+    emoji: "🏠",
+    name: "Property",
+    form: (today) => (
+      <QuickForm
+        kind="focus"
+        title="Log property focus hours"
+        cta="Save hours"
+        today={today}
+        fields={[
+          { name: "hours", label: "Hours", type: "number", half: true, placeholder: "2" },
+          { name: "date", label: "Date", type: "date", half: true, default: today },
+          { name: "notes", label: "What you worked on", type: "text", placeholder: "Marketplace ads, owner statements" },
+        ]}
+      />
+    ),
+  },
+  {
+    id: "task",
+    emoji: "✅",
+    name: "Task",
+    form: (today) => (
+      <QuickForm
+        kind="task"
+        title="Add a task or reminder"
+        cta="Add task"
+        today={today}
+        fields={[
+          { name: "task", label: "Task", type: "text", placeholder: "Call the plumber" },
+          { name: "type", label: "Type", type: "select", options: ["To-do", "Reminder", "Property", "Project"], half: true, default: "To-do" },
+          { name: "due", label: "Due", type: "date", half: true, default: "" },
+        ]}
+      />
+    ),
+  },
+];
 
 export default function LogTab({ today }) {
+  const [active, setActive] = useState(null);
+
+  function toggle(id) {
+    setActive((prev) => (prev === id ? null : id));
+  }
+
+  const activeTile = TILES.find((t) => t.id === active);
+
   return (
     <div>
       <div className="log-hero" style={{ paddingBottom: 4 }}>
@@ -185,81 +276,36 @@ export default function LogTab({ today }) {
       <div className="log-forms" style={{ paddingTop: 16 }}>
         <p className="section-label" style={{ marginTop: 0 }}>Structured entry</p>
 
-        <LogSection title="Training" icon="🥋">
-          <QuickForm
-            kind="training"
-            title="Log a session"
-            cta="Save session"
-            today={today}
-            fields={[
-              { name: "type", label: "Type", type: "select", options: ["Jiu Jitsu", "Gym"], half: true, default: "Jiu Jitsu" },
-              { name: "date", label: "Date", type: "date", half: true, default: today },
-              { name: "duration_min", label: "Minutes", type: "number", half: true, placeholder: "60" },
-              { name: "energy", label: "Energy", type: "select", options: ["", "Low", "Medium", "High"], half: true, default: "" },
-              { name: "moves_lifts", label: "Moves / weights", type: "text", placeholder: "Armbar from guard, bench 185x5" },
-              { name: "notes", label: "Notes", type: "text", placeholder: "optional" },
-            ]}
-          />
-        </LogSection>
+        <div className="log-tile-grid">
+          {TILES.map((tile) => (
+            <button
+              key={tile.id}
+              className={`log-tile${active === tile.id ? " active" : ""}`}
+              onClick={() => toggle(tile.id)}
+              type="button"
+            >
+              <div className="log-tile-emoji">{tile.emoji}</div>
+              <span className="log-tile-name">{tile.name}</span>
+            </button>
+          ))}
+        </div>
 
-        <LogSection title="Sleep" icon="😴">
-          <QuickForm
-            kind="sleep"
-            title="Log last night's sleep"
-            cta="Save sleep"
-            today={today}
-            fields={[
-              { name: "hours", label: "Hours", type: "number", half: true, placeholder: "7.5" },
-              { name: "quality", label: "Quality", type: "select", options: ["Poor", "OK", "Good"], half: true, default: "Good" },
-              { name: "date", label: "Date (morning you woke up)", type: "date", default: today },
-            ]}
-          />
-        </LogSection>
-
-        <LogSection title="Food" icon="🍽️">
-          <FoodLogger />
-        </LogSection>
-
-        <LogSection title="Body weight" icon="⚖️">
-          <QuickForm
-            kind="weight"
-            title="Log weight"
-            cta="Save weight"
-            today={today}
-            fields={[
-              { name: "weight_kg", label: "Weight (kg)", type: "number", half: true, placeholder: "82.5" },
-              { name: "date", label: "Date", type: "date", half: true, default: today },
-            ]}
-          />
-        </LogSection>
-
-        <LogSection title="Property work" icon="🏠">
-          <QuickForm
-            kind="focus"
-            title="Log property focus hours"
-            cta="Save hours"
-            today={today}
-            fields={[
-              { name: "hours", label: "Hours", type: "number", half: true, placeholder: "2" },
-              { name: "date", label: "Date", type: "date", half: true, default: today },
-              { name: "notes", label: "What you worked on", type: "text", placeholder: "Marketplace ads, owner statements" },
-            ]}
-          />
-        </LogSection>
-
-        <LogSection title="Task / reminder" icon="✅">
-          <QuickForm
-            kind="task"
-            title="Add a task or reminder"
-            cta="Add task"
-            today={today}
-            fields={[
-              { name: "task", label: "Task", type: "text", placeholder: "Call the plumber" },
-              { name: "type", label: "Type", type: "select", options: ["To-do", "Reminder", "Property", "Project"], half: true, default: "To-do" },
-              { name: "due", label: "Due", type: "date", half: true, default: "" },
-            ]}
-          />
-        </LogSection>
+        {activeTile && (
+          <div className="log-tile-panel" key={activeTile.id}>
+            <div className="log-tile-panel-header">
+              <span className="log-tile-panel-title">{activeTile.emoji} {activeTile.name}</span>
+              <button
+                type="button"
+                className="log-tile-panel-close"
+                onClick={() => setActive(null)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            {activeTile.form(today)}
+          </div>
+        )}
 
         <div style={{ height: 12 }} />
       </div>
