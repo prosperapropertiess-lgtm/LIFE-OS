@@ -89,9 +89,8 @@ export default function TodayTab({ d, today }) {
   async function saveSleep() {
     if (!sleepHours.trim() || sleepSaving) return;
     setSleepSaving(true); setSleepErr(null);
-    const date = new Date().toLocaleDateString("en-CA");
     try {
-      const r = await fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "sleep", hours: sleepHours, quality: sleepQuality, date }) });
+      const r = await fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "sleep", hours: sleepHours, quality: sleepQuality, date: today }) });
       const data = await r.json();
       if (r.ok && data.ok) {
         setSleepLogged(true); setSleepOpen(false);
@@ -105,9 +104,8 @@ export default function TodayTab({ d, today }) {
   async function saveWeight() {
     if (!weightKg.trim() || weightSaving) return;
     setWeightSaving(true); setWeightErr(null);
-    const date = new Date().toLocaleDateString("en-CA");
     try {
-      const r = await fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "weight", weight_kg: weightKg, date }) });
+      const r = await fetch("/api/log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "weight", weight_kg: weightKg, date: today }) });
       const data = await r.json();
       if (r.ok && data.ok) {
         setWeightLogged(true); setWeightOpen(false);
@@ -137,10 +135,7 @@ export default function TodayTab({ d, today }) {
           <div className="hd-date">{prettyDate(today)}</div>
           <div className="hd-greeting">{greeting()},<br/>Ebin</div>
         </div>
-        <div className="streak-badge">
-          <span>🔥</span>
-          <span>{d.streak || 0} {d.streak === 1 ? "day" : "days"}</span>
-        </div>
+        <div className="avatar">E</div>
       </div>
 
       {/* ── Habit pills ── */}
