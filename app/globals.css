@@ -1213,18 +1213,15 @@ button.primary:disabled { opacity: 0.4; cursor: default; transform: none; }
   background: rgba(0,0,0,0.06);
   border-radius: 999px;
   pointer-events: none;
-  transition: width 0.05s linear;
 }
 .swipe-thumb {
   position: absolute; top: 4px; bottom: 4px;
-  width: 28px;
+  width: 36px;
   background: var(--accent);
   border-radius: 999px;
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 18px; font-weight: 300;
+  color: #fff; font-size: 20px; line-height: 1;
   pointer-events: none;
-  transition: left 0.05s linear;
-  left: 4px;
 }
 .swipe-hint {
   position: absolute; inset: 0;

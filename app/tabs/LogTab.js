@@ -6,61 +6,72 @@ import FoodLogger from "../FoodLogger.js";
 
 // ── Swipe-to-log (creatine / supplements) ────────────────────
 
+const THUMB = 36; // thumb width px
+
 function SwipeToLog({ id, emoji, name, today }) {
   const key = `habit-${id}-${today}`;
-  const [done, setDone]     = useState(false);
-  const [dragPct, setDragPct] = useState(0);
+  const [done, setDone] = useState(false);
+  const [thumbX, setThumbX] = useState(4); // px from left
   const dragging = useRef(false);
   const startX   = useRef(0);
+  const startThumb = useRef(4);
   const trackRef = useRef(null);
 
   useEffect(() => {
     try { setDone(localStorage.getItem(key) === "1"); } catch {}
   }, [key]);
 
+  function maxX() {
+    return (trackRef.current?.offsetWidth || 260) - THUMB - 8; // 4px padding each side
+  }
+
   function onPointerDown(e) {
     if (done) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     dragging.current = true;
     startX.current = e.clientX;
+    startThumb.current = thumbX;
   }
 
   function onPointerMove(e) {
     if (!dragging.current || done) return;
-    const trackW = (trackRef.current?.offsetWidth || 260) - 52;
-    const dx = Math.max(0, Math.min(e.clientX - startX.current, trackW));
-    setDragPct(dx / trackW);
+    const dx = e.clientX - startX.current;
+    const next = Math.max(4, Math.min(startThumb.current + dx, maxX()));
+    setThumbX(next);
   }
 
   function onPointerUp() {
     if (!dragging.current) return;
     dragging.current = false;
-    if (dragPct >= 0.78) {
+    if (thumbX >= maxX() * 0.78) {
       setDone(true);
+      setThumbX(4);
       try { localStorage.setItem(key, "1"); } catch {}
       if (navigator.vibrate) navigator.vibrate(40);
+    } else {
+      setThumbX(4); // snap back
     }
-    setDragPct(0);
   }
 
+  const pct = Math.min(1, (thumbX - 4) / Math.max(1, maxX() - 4));
+
   return (
-    <div className={`swipe-log${done ? " done" : ""}`} ref={trackRef}>
+    <div className={`swipe-log${done ? " done" : ""}`}>
       <span className="swipe-label">{emoji} {name}</span>
       {done ? (
         <span className="swipe-done-badge">✓ Done</span>
       ) : (
         <div
           className="swipe-track"
+          ref={trackRef}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <div className="swipe-fill" style={{ width: `${dragPct * 100}%` }} />
-          <div className="swipe-thumb" style={{ left: `calc(${dragPct * 100}% * (1 - 52px / 100%))` }}>
-            <span>›</span>
-          </div>
-          <span className="swipe-hint">slide to log</span>
+          <div className="swipe-fill" style={{ width: `${pct * 100}%` }} />
+          <div className="swipe-thumb" style={{ left: thumbX }}>›</div>
+          {pct < 0.15 && <span className="swipe-hint">slide to log</span>}
         </div>
       )}
     </div>

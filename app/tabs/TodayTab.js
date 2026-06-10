@@ -332,8 +332,8 @@ function DayBriefing({ d, today }) {
 
   const jjDone  = d.jjCount  || 0;
   const gymDone = d.gymCount || 0;
-  const jjGoal  = d.goals?.jj  || 3;
-  const gymGoal = d.goals?.gym || 2;
+  const jjGoal  = d.goals?.jj  || 5;
+  const gymGoal = d.goals?.gym || 3;
 
   // Task items
   const todayTasks    = (d.dueNow  || []).slice(0, 3);
@@ -435,7 +435,7 @@ function MorningBrief() {
 export default function TodayTab({ d, today }) {
   const [foodOpen, setFoodOpen] = useState(false);
   const totalSessions = (d.jjCount || 0) + (d.gymCount || 0);
-  const totalGoal = (d.goals?.jj || 3) + (d.goals?.gym || 2);
+  const totalGoal = (d.goals?.jj || 5) + (d.goals?.gym || 3);
   const calPct = pct(d.nutrition?.calories || 0, d.targets?.calories || 2500);
   const proPct = pct(d.nutrition?.protein || 0, d.targets?.protein || 200);
 
@@ -587,22 +587,22 @@ export default function TodayTab({ d, today }) {
       <div className="stats-grid three-col" style={{ marginBottom: 12 }}>
         <div className="sc violet">
           <div className="sc-label">Jiu Jitsu</div>
-          <div className="sc-num">{d.jjCount}<span className="sc-denom">/{d.goals?.jj || 3}</span></div>
+          <div className="sc-num">{d.jjCount}<span className="sc-denom">/{d.goals?.jj || 5}</span></div>
           <div className="bar">
-            <span style={{ "--target": pct(d.jjCount, d.goals?.jj || 3) + "%" }} />
+            <span style={{ "--target": pct(d.jjCount, d.goals?.jj || 5) + "%" }} />
           </div>
-          <p className={"sc-sub" + (d.jjCount >= (d.goals?.jj || 3) ? " hit" : "")}>
-            {d.jjCount >= (d.goals?.jj || 3) ? "Goal hit ✓" : `${(d.goals?.jj || 3) - d.jjCount} more`}
+          <p className={"sc-sub" + (d.jjCount >= (d.goals?.jj || 5) ? " hit" : "")}>
+            {d.jjCount >= (d.goals?.jj || 5) ? "Goal hit ✓" : `${(d.goals?.jj || 5) - d.jjCount} more`}
           </p>
         </div>
         <div className="sc green">
           <div className="sc-label">Gym</div>
-          <div className="sc-num">{d.gymCount}<span className="sc-denom">/{d.goals?.gym || 2}</span></div>
+          <div className="sc-num">{d.gymCount}<span className="sc-denom">/{d.goals?.gym || 3}</span></div>
           <div className="bar green">
-            <span style={{ "--target": pct(d.gymCount, d.goals?.gym || 2) + "%" }} />
+            <span style={{ "--target": pct(d.gymCount, d.goals?.gym || 3) + "%" }} />
           </div>
-          <p className={"sc-sub" + (d.gymCount >= (d.goals?.gym || 2) ? " hit" : "")}>
-            {d.gymCount >= (d.goals?.gym || 2) ? "Goal hit ✓" : `${(d.goals?.gym || 2) - d.gymCount} more`}
+          <p className={"sc-sub" + (d.gymCount >= (d.goals?.gym || 3) ? " hit" : "")}>
+            {d.gymCount >= (d.goals?.gym || 3) ? "Goal hit ✓" : `${(d.goals?.gym || 3) - d.gymCount} more`}
           </p>
         </div>
         <div className="sc amber">
