@@ -274,6 +274,111 @@ function ExperimentCard({ experiment }) {
   );
 }
 
+// ── Day briefing ────────────────────────────────────────────
+
+function typeIcon(type) {
+  switch ((type || "").toLowerCase()) {
+    case "property": return "🏠";
+    case "reminder": return "🔔";
+    case "project":  return "📁";
+    default:         return "📋";
+  }
+}
+
+function relDay(due, today) {
+  if (!due) return null;
+  if (due === today) return "Today";
+  const d1 = new Date(today + "T12:00:00");
+  const d2 = new Date(due  + "T12:00:00");
+  const diff = Math.round((d2 - d1) / 86400000);
+  if (diff === 1) return "Tomorrow";
+  if (diff <= 6)  return `In ${diff} days`;
+  return due.slice(5).replace("-", "/");
+}
+
+// Try to pull a time string out of task text e.g. "shift 9am" → "9 AM"
+function extractTime(text) {
+  const m = (text || "").match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
+  const ampm = m[3].toUpperCase();
+  return `${h}:${String(min).padStart(2, "0")} ${ampm}`;
+}
+
+function DayBriefing({ d, today }) {
+  const jjLeft  = Math.max(0, (d.goals?.jj  || 3) - (d.jjCount  || 0));
+  const gymLeft = Math.max(0, (d.goals?.gym || 2) - (d.gymCount || 0));
+
+  // Items: today's tasks + next 3 upcoming
+  const todayTasks    = (d.dueNow  || []).slice(0, 3);
+  const upcomingTasks = (d.upcoming || []).slice(0, 3);
+  const items = [...todayTasks, ...upcomingTasks].slice(0, 4);
+
+  // Smart nudges
+  const nudges = [];
+
+  // Detect a shift task today to make gym nudge specific
+  const shiftTask = todayTasks.find((t) =>
+    /shift|work|job|office/i.test(t.task)
+  );
+  const shiftTime = shiftTask ? extractTime(shiftTask.task) : null;
+
+  if (gymLeft > 0) {
+    if (shiftTime) {
+      nudges.push(`${gymLeft} gym session${gymLeft > 1 ? "s" : ""} left — good window before your ${shiftTime} shift.`);
+    } else {
+      nudges.push(`${gymLeft} gym session${gymLeft > 1 ? "s" : ""} left this week. Find a window today.`);
+    }
+  }
+  if (jjLeft > 0) {
+    nudges.push(`${jjLeft} Jiu Jitsu session${jjLeft > 1 ? "s" : ""} left to hit your weekly goal.`);
+  }
+  if (d.lastNight && Number(d.lastNight.hours) < 6) {
+    nudges.push(`You slept ${d.lastNight.hours}h last night. Take it easy on intensity today.`);
+  }
+  if (gymLeft === 0 && jjLeft === 0) {
+    nudges.push("Training goals done for the week. Rest and recover.");
+  }
+
+  if (items.length === 0 && nudges.length === 0) return null;
+
+  return (
+    <div className="day-brief-card">
+      <p className="day-brief-title">Your week at a glance</p>
+
+      {items.length > 0 && (
+        <div className="day-brief-items">
+          {items.map((t, i) => {
+            const time = extractTime(t.task);
+            const day  = relDay(t.due, today);
+            return (
+              <div key={t.id || i} className="day-brief-row">
+                <span className="day-brief-icon">{typeIcon(t.type)}</span>
+                <span className="day-brief-task">{t.task}</span>
+                <span className="day-brief-when">
+                  {time ? `${day} · ${time}` : day}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {nudges.length > 0 && (
+        <div className="day-brief-nudges">
+          {nudges.map((n, i) => (
+            <p key={i} className="day-brief-nudge">
+              <span className="day-brief-nudge-dot" />
+              {n}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Morning brief card ───────────────────────────────────────
 
 function MorningBrief() {
@@ -337,6 +442,9 @@ export default function TodayTab({ d, today }) {
           <div className="hd-date" style={{ marginTop: 6, fontSize: 13, fontWeight: 500, letterSpacing: 0, textTransform: "none", color: "var(--muted)" }}>{prettyDate(today)}</div>
         </div>
       </div>
+
+      {/* ── Day briefing ── */}
+      <DayBriefing d={d} today={today} />
 
       {/* ── Morning brief ── */}
       <MorningBrief />
