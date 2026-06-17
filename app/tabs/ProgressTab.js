@@ -270,6 +270,11 @@ export default function ProgressTab({ d }) {
   const delta = d.weight?.delta;
   const projection = weightProjection(d.weight?.recent);
 
+  const weightRecent = d.weight?.recent || [];
+  const avg7 = weightRecent.length
+    ? (weightRecent.reduce((s, r) => s + Number(r.weight_kg), 0) / weightRecent.length).toFixed(1)
+    : null;
+
   return (
     <div className="page-wrap">
       {/* ── Header ── */}
@@ -289,6 +294,11 @@ export default function ProgressTab({ d }) {
               {latest ? latest.weight_kg : "—"}
               <span className="prog-unit">kg</span>
             </div>
+            {avg7 && (
+              <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, fontWeight: 500 }}>
+                7d avg: {avg7} kg
+              </p>
+            )}
           </div>
           {delta != null ? (
             <div className={`prog-delta${delta <= 0 ? " down" : " up"}`}>
